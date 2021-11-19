@@ -5,12 +5,17 @@ from nltk.tokenize import sent_tokenize
 
 from classifier import *
 
-PHRASE_N = 3 # n for n-grams
+MAX_PHRASE_VALUE = 2 # max 'valuable' words per phrase
 EXCUSABLE_DIFFERING_POSTFIX = 3 # max ignorable postfix len when comparing words
+
 VALUABLE_POS = ("NOUN", "VERB")
+PREFIX_POS = ("DET", "ADJ", "ADV", "ADP")
+
+def clauses(text):
+    return re.split(r"(?:[,.:;]\W)|(?:\s-\s)", text)
 
 def word_iter(text):
-    for match in re.finditer("\w+", text):
+    for match in re.finditer(r"\w+", text):
         yield match[0]
 
 @dataclass
@@ -194,44 +199,66 @@ class Document:
         word_records = {} # folded => WordRecord
         phrases = [] # list of tuples of (word, record)
 
-        for sent in sent_tokenize(text):
-            sent_records = [] # tuple of (word, record)
+        for clause in clauses(text):
+            clause_records = [] # tuple of (word, record)
 
             # log individual words
-            for word in word_iter(sent):
+            for word in word_iter(clause):
                 folded = word.casefold()
 
+                # count words
                 if folded in word_records:
                     word_records[folded].freq += 1
                 else:
                     word_records[folded] = WordRecord(word, folded)
 
-                sent_records.append((word, word_records[folded]))
+                # regularize word representation
+                if word_records[folded].pos == "NOUN":
+                    word = word.title()
+                else:
+                    word = folded
 
-            # extract phrases from sentence. TODO describe what classifies as a
-            # phrase here
-            for i in range(len(sent_records)):
-                if not sent_records[i][1].is_valuable():
+                clause_records.append((word, word_records[folded]))
+
+            # extract phrases from sentence
+            for i in range(len(clause_records)):
+                # phrase should stem from a valuable word pos
+                if not clause_records[i][1].is_valuable():
                     continue
 
-                value = 0
-                j = i
                 phrase = []
 
-                while value < MAX_PHRASE_VALUE and j < len(sent_records):
-                    # generate phrase
-                    phrase.append(sent_records[j])
+                # grab potentially related non-valuable pre-phrase words
+                j = i - 1
 
-                    if sent_records[j][1].is_valuable():
+                while j >= 0 and clause_records[j][1].pos in PREFIX_POS:
+                    phrase.insert(0, clause_records[j])
+
+                    j -= 1
+
+                # generate phrase by adding words from clause until
+                # MAX_PHRASE_VALUE valuable words are reached.
+                value = 0
+                j = i
+
+                while value < MAX_PHRASE_VALUE and j < len(clause_records):
+                    phrase.append(clause_records[j])
+
+                    if clause_records[j][1].is_valuable():
                         value += 1
 
-                        if len(phrase) > 1:
+                        if value > 1:
                             phrases.append(tuple(phrase))
 
                     j += 1
 
         """
         collapse generated words and phrases into only their unique records
+        using a WRTrie
+
+        TODO use levenshtein distance algorithm for searching the trie?
+
+        may be able to do something similar for phrases as well?
         """
         self.wrtrie = WRTrie(word_records.values())
 
