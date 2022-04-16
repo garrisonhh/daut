@@ -1,7 +1,7 @@
 import re
+from pathlib import PurePath
 from time import time
 from dataclasses import dataclass
-from nltk.tokenize import sent_tokenize
 
 from classifier import *
 
@@ -179,6 +179,12 @@ class PhraseRecord:
         return self.stringified
 
 class Document:
+    def from_file(path):
+        title = PurePath(path).stem
+
+        with open(path, "r") as f:
+            return Document(title, f.read())
+
     def __init__(self, title, text):
         t = time()
 
@@ -186,10 +192,20 @@ class Document:
         self.wrtrie = None
         self.phrase_records = {}
 
+        self.wrdict = None # map of word => topicality
+        self.wrtotal = 0 # total topicality
+
         self.load_text(text)
 
         t = time() - t
         print(f"processed text \"{self.title}\" in {t:.2f}s")
+
+    # reloads the wrdict and wrtotal
+    def _calc_wr_data(self):
+        self.wrdict = dict(
+            (wr.word, wr.topicality()) for wr in self.wrtrie.extract()
+        )
+        self.wrtotal = sum(map(lambda t: t[1], self.wrdict.items()))
 
     def load_text(self, text):
         """
@@ -273,6 +289,8 @@ class Document:
             else:
                 self.phrase_records[record.hashable] = record
 
+        self._calc_wr_data()
+
     def best_words(self, n):
         return list(filter(
             lambda w: not w.closed,
@@ -289,3 +307,17 @@ class Document:
             key = PhraseRecord.topicality,
             reverse = True
         ))[:n]
+
+    def compare(self, other):
+        comparison = 0
+
+        # self common + uncommon words
+        for word, top in self.wrdict.items():
+            other_top = other.wrdict[word] if word in other.wrdict else 0
+            comparison += abs(top - other_top)
+
+        for word, top in other.wrdict.items():
+            if word not in self.wrdict:
+                comparison += top
+
+        return 1.0 - (comparison / (self.wrtotal + other.wrtotal))

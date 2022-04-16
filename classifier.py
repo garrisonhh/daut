@@ -79,8 +79,15 @@ class ClassifierNode:
 
         return count
 
+
 class Classifier:
     inst = None # singleton instance
+
+    def load():
+        Classifier.inst = Classifier([
+            "corpi/de_hdt-ud-train-a-1.conllu",
+            "corpi/de_hdt-ud-train-a-2.conllu"
+        ])
 
     """
     given a list of .conllu corpi, loads .casefold()ed words in and stores their
@@ -145,8 +152,3 @@ class Classifier:
 
     def count(self):
         return self.root.count()
-
-Classifier.inst = Classifier([
-    "corpi/de_hdt-ud-train-a-1.conllu",
-    "corpi/de_hdt-ud-train-a-2.conllu"
-])
