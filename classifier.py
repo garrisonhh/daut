@@ -40,9 +40,13 @@ class ClassifierNode:
 
             self.branches[word[index]].put(word, pos, index + 1)
 
+    # most common pos from this node
+    def best_guess(self):
+        return
+
     # either finds the exact word, or makes its best guess based on other words
     # returns tuple of (word, was_guess)
-    def classify(self, word, index = 0, last_pos = "X"):
+    def classify(self, word, index = 0, last_pos = None):
         if self.end:
             # reached end of a stored word, record its pos
             maybe_pos = self.pos()
@@ -53,15 +57,18 @@ class ClassifierNode:
         if index == len(word):
             # reached end of word
             return (last_pos, not self.end)
-        else:
-            if word[index] in self.branches:
-                # continue down tree
-                return self.branches[word[index]].classify(
-                    word, index + 1, last_pos
-                )
-            else:
-                # end of branch, word still has characters
-                return (last_pos, False)
+
+        if word[index] in self.branches:
+            # continue down tree
+            return self.branches[word[index]].classify(
+                word, index + 1, last_pos
+            )
+
+        # end of branch, but word still has characters
+        if len(self.pos_freq) > 0:
+           return (self.pos(), True)
+
+        return (last_pos, False)
 
     # iterator for (word, pos) tuples
     def extract(self, word = ""):
