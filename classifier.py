@@ -54,18 +54,14 @@ class ClassifierNode:
             if not (maybe_pos in CLOSED_CLASSES and index != len(word)):
                 last_pos = maybe_pos
 
-        if index == len(word):
-            # reached end of word
-            return (last_pos, not self.end)
-
-        if word[index] in self.branches:
+        if index != len(word) and word[index] in self.branches:
             # continue down tree
             return self.branches[word[index]].classify(
                 word, index + 1, last_pos
             )
 
-        # end of branch, but word still has characters
-        if len(self.pos_freq) > 0:
+        # either end of word or end of branch
+        if last_pos == None and len(self.pos_freq) > 0:
            return (self.pos(), True)
 
         return (last_pos, False)

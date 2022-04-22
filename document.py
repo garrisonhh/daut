@@ -189,6 +189,8 @@ class Document:
         t = time()
 
         self.title = title
+        self.text = text
+
         self.wrtrie = None
         self.phrase_records = {}
 
