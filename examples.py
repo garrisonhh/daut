@@ -14,6 +14,14 @@ def init():
     with open("template.html", "r") as f:
         TEMPLATE = f.read()
 
+def main():
+    # run one of these!
+
+    grab_phrases()
+    # compare_documents()
+    # make_md_table()
+    # make_html()
+
 # spits out some of the most topical words and phrases from a file
 def grab_phrases():
     doc = Document.from_file("files/waeldern-grenze-ukraine.txt")
@@ -61,11 +69,7 @@ def make_md_table():
 
     for row in table[1:]:
         strs = []
-
-        for item in row:
-            if type(item) is WordRecord:
-                strs.append(item.word)
-            else: # PhraseRecord
+:
                 strs.append(item.stringified)
 
         print(*strs, sep = ' | ')
@@ -116,10 +120,4 @@ def make_html():
 
 if __name__ == "__main__":
     init()
-
-    # choose a function to uncomment
-
-    # grab_phrases()
-    # compare_documents()
-    # make_md_table()
-    # make_html()
+    main()
