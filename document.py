@@ -160,14 +160,17 @@ class PhraseRecord:
 
         self.freq += other.freq
 
+    def unclosed_records(self):
+        return filter(lambda rec: not rec.closed, self.records)
+
     def uniqueness(self):
-        avg_u = sum(map(WordRecord.uniqueness, self.records))
+        avg_u = sum(map(WordRecord.uniqueness, self.unclosed_records()))
         avg_u /= len(self.records)
 
         return avg_u * self.freq
 
     def topicality(self):
-        avg_t = sum(map(WordRecord.topicality, self.records))
+        avg_t = sum(map(WordRecord.topicality, self.unclosed_records()))
         avg_t /= len(self.records)
 
         return avg_t * self.freq
@@ -293,20 +296,22 @@ class Document:
 
         self._calc_wr_data()
 
-    def best_words(self, n):
+    def best_words(self, n, topical = True):
         return list(filter(
             lambda w: not w.closed,
             sorted(
                 self.wrtrie.extract(),
-                key = WordRecord.topicality,
+                key = WordRecord.topicality if topical \
+                      else WordRecord.uniqueness,
                 reverse = True
             )
         ))[:n]
 
-    def best_phrases(self, n):
+    def best_phrases(self, n, topical = True):
         return list(sorted(
             self.phrase_records.values(),
-            key = PhraseRecord.topicality,
+            key = PhraseRecord.topicality if topical \
+                  else PhraseRecord.uniqueness,
             reverse = True
         ))[:n]
 
